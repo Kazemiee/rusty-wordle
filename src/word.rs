@@ -55,6 +55,15 @@ impl PartialEq<Word> for String {
     }
 }
 
+impl TryFrom<String> for Word {
+    type Error = TryFromSliceError;
+    fn try_from(value: String) -> Result<Self, TryFromSliceError> {
+        let chars = value.as_bytes().try_into()?;
+
+        Ok(Self { chars: chars })
+    }
+}
+
 impl TryFrom<&str> for Word {
     type Error = TryFromSliceError;
     fn try_from(value: &str) -> Result<Self, TryFromSliceError> {
@@ -63,6 +72,21 @@ impl TryFrom<&str> for Word {
         Ok(Self { chars: chars })
     }
 }
+
+impl TryFrom<&[u8; 5]> for Word {
+    type Error = TryFromSliceError;
+    fn try_from(value: &[u8; 5]) -> Result<Self, TryFromSliceError> {
+        Ok(Self { chars: *value })
+    }
+}
+
+impl TryFrom<[u8; 5]> for Word {
+    type Error = TryFromSliceError;
+    fn try_from(value: [u8; 5]) -> Result<Self, TryFromSliceError> {
+        Ok(Self { chars: value })
+    }
+}
+
 
 impl Into<String> for Word {
     fn into(self) -> String {

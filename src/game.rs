@@ -1,4 +1,3 @@
-use egui::output;
 use rand::{rng, Rng};
 
 use crate::word::Word;
@@ -74,20 +73,20 @@ impl WordResult {
             let mut positions_non_green = [255; 5];
             let mut count_non_green = 0;
 
-            for index_ans in 0..count_ans {
-                for index_in in count_green..count_in {
-                    let index_word_in = positions_in[index_in as usize];
+            'input_index_loop: for index_in in count_green..count_in {
+                let index_word_in = positions_in[index_in as usize];
+                for index_ans in 0..count_ans {
                     let index_word_ans = positions_ans[index_ans as usize];
                     if index_word_in == index_word_ans {
                         result[index_word_in as usize] = CharResult::Green;
                         positions_green[count_green as usize] = index_in as u8;
                         count_green += 1;
-                    }
-                    else {
-                        positions_non_green[count_non_green as usize] = index_in as u8;
-                        count_non_green += 1;
+                        continue 'input_index_loop;
                     }
                 }
+
+                positions_non_green[count_non_green as usize] = index_word_in as u8;
+                count_non_green += 1;
             }
 
             //  Yellows(char) = count_in_both(char) - Greens(char)
@@ -97,7 +96,7 @@ impl WordResult {
             let mut current_non_green_index = 0;
 
             for _ in 0..yellow_count {
-                let index_word_in = positions_in[current_non_green_index as usize];
+                let index_word_in = positions_non_green[current_non_green_index as usize];
                 result[index_word_in as usize] = CharResult::Yellow;
                 current_non_green_index += 1;
             }
@@ -193,7 +192,6 @@ impl Game {
 #[cfg(test)]
 mod tests {
     use std::collections::HashSet;
-
     use super::*;
     
     #[test]
