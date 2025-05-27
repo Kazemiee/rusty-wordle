@@ -28,7 +28,7 @@ pub fn new_possibility_space_size(context: WordResult, current_possibility_space
 
 fn good_result(maybe_correct: Word, context: WordResult) -> bool {
     let input_word = context.input();
-    let result = WordResult::calculate(*input_word, maybe_correct);
+    let result = WordResult::compare_guess(*input_word, maybe_correct);
     return result.result() == context.result();
 }
 
