@@ -1,5 +1,6 @@
 use app::WordleApp;
 
+mod strategy;
 mod game;
 mod word;
 mod app;

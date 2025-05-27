@@ -23,12 +23,16 @@ pub enum CharResult {
     None,
 }
 
-pub fn all_possible_results() -> [[CharResult; 5]; 243] {
+pub const fn all_possible_results() -> [[CharResult; 5]; 243] {
     let mut output = [[CharResult::None; 5]; 243];
 
-    for i in 0..243 {
+    let mut i = 0;
+
+    while i != 243 {
         let mut n = i;
-        for j in (0..5).rev() {
+        let mut j = 5;
+        while j != 0 {
+            j -= 1;
             output[i][j] = match n % 3 {
                 0 => CharResult::None,
                 1 => CharResult::Yellow,
@@ -37,6 +41,7 @@ pub fn all_possible_results() -> [[CharResult; 5]; 243] {
             };
             n /= 3;
         }
+        i += 1;
     }
 
     output
@@ -49,11 +54,15 @@ pub struct WordResult {
 }
 
 impl WordResult {
-    pub fn new(input: Word, answer: Word) -> Self {
+    pub fn new(input: Word, result: [CharResult; 5]) -> Self {
+        Self { input: input, result: result }
+    }
+    pub fn calculate(input: Word, answer: Word) -> Self {
         let mut result = [CharResult::None; 5];
         let mut count_unique = 0;
         let mut unique_in_input = [0u8; 5];
 
+        // Find the every unique character
         'outer: for n in 0..5 {
             for i in 0..count_unique {
                 if unique_in_input[i] == input[n] {
@@ -65,7 +74,8 @@ impl WordResult {
         }
 
         for character in unique_in_input  {
-            let (positions_ans, count_ans) = answer.positions_with_count(character);
+            // Find positions and counts of characters in both words
+            let (_, count_ans) = answer.positions_with_count(character);
             let (positions_in, count_in) = input.positions_with_count(character);
 
             let mut positions_green = [255; 5];
@@ -73,27 +83,36 @@ impl WordResult {
             let mut positions_non_green = [255; 5];
             let mut count_non_green = 0;
 
-            'input_index_loop: for index_in in count_green..count_in {
+            // Iterate over character positions in input
+
+            for index_in in count_green..count_in {
                 let index_word_in = positions_in[index_in as usize];
-                for index_ans in 0..count_ans {
-                    let index_word_ans = positions_ans[index_ans as usize];
-                    if index_word_in == index_word_ans {
-                        result[index_word_in as usize] = CharResult::Green;
-                        positions_green[count_green as usize] = index_in as u8;
-                        count_green += 1;
-                        continue 'input_index_loop;
-                    }
+
+                if answer[index_word_in as usize] == character {
+                    // Answer at current position is the current character
+                    // This character has to be green
+
+                    result[index_word_in as usize] = CharResult::Green;
+                    positions_green[count_green as usize] = index_in as u8;
+                    count_green += 1;
+                    continue;
                 }
+
+                // Answer at current position is the current character
+                // This character may be gray or yellow
 
                 positions_non_green[count_non_green as usize] = index_word_in as u8;
                 count_non_green += 1;
             }
 
-            //  Yellows(char) = count_in_both(char) - Greens(char)
+            // We can find the number of remaining yellows
+            // Yellows(char) = count_in_both(char) - Greens(char)
 
             let yellow_count = count_in.min(count_ans) - count_green;
 
             let mut current_non_green_index = 0;
+
+            // Set yellow_count gray characters to yellow
 
             for _ in 0..yellow_count {
                 let index_word_in = positions_non_green[current_non_green_index as usize];
@@ -102,7 +121,7 @@ impl WordResult {
             }
         }
 
-        Self { input: input, result: result }
+        Self::new(input, result)
     }
 
     pub fn result(&self) -> &[CharResult; 5] {
@@ -114,7 +133,7 @@ impl WordResult {
     }
 }
 
-fn possible_guesses() -> Vec<Word> {
+pub fn possible_guesses() -> Vec<Word> {
     let file_data = include_str!("../valid-wordle-words.txt");
     let words = file_data.split("\n");
 
@@ -163,7 +182,7 @@ impl Game {
     }
 
     pub fn guess(&mut self, input: Word) -> () {
-        let new_result = WordResult::new(input, self.answer);
+        let new_result = WordResult::calculate(input, self.answer);
 
         self.history[self.round as usize] = Some(new_result);
         self.round += 1;
@@ -214,7 +233,7 @@ mod tests {
     fn test_all_green() {
         let guess = Word::try_from("apple").unwrap();
         let answer = Word::try_from("apple").unwrap();
-        let result = WordResult::new(guess, answer);
+        let result = WordResult::calculate(guess, answer);
 
         assert_eq!(
             result.result(),
@@ -226,7 +245,7 @@ mod tests {
     fn test_all_none() {
         let guess = Word::try_from("abcde").unwrap();
         let answer = Word::try_from("fghij").unwrap();
-        let result = WordResult::new(guess, answer);
+        let result = WordResult::calculate(guess, answer);
 
         assert_eq!(
             result.result(),
@@ -238,7 +257,7 @@ mod tests {
     fn test_all_yellow() {
         let guess = Word::try_from("pleap").unwrap();
         let answer = Word::try_from("apple").unwrap();
-        let result = WordResult::new(guess, answer);
+        let result = WordResult::calculate(guess, answer);
         assert_eq!(
             result.result(),
             &[
@@ -255,7 +274,7 @@ mod tests {
     fn test_mixed_result() {
         let guess = Word::try_from("crane").unwrap();
         let answer = Word::try_from("candy").unwrap();
-        let result = WordResult::new(guess, answer);
+        let result = WordResult::calculate(guess, answer);
 
         assert_eq!(
             result.result(),
